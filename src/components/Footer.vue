@@ -1,7 +1,7 @@
 <template>
   <footer class="footer">
     <div class="footer__container container">
-      <span>&copy; {{ year }} Apple Inc. All rights reserved.</span>
+      <span>&copy; {{ year }} {{ info.app.name }} Inc. All rights reserved.</span>
       <div class="footer__links">
         <NuxtLink to="https://www.apple.com/legal/privacy" target="_blank">
           Privacy Policy
@@ -22,7 +22,8 @@
 </template>
 
 <script setup lang="ts">
-const year = computed(() => new Date().getFullYear())
+const info = useInfo()
+const year = new Date().getFullYear()
 </script>
 
 <style scoped lang="scss">
