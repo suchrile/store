@@ -1,0 +1,218 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Object {
+  id   Int  @id @default(autoincrement())
+  data Json
+
+  @@map("objects")
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  password String
+
+  refreshTokens RefreshToken[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id     Int    @id @default(autoincrement())
+  userId Int    @map("user_id")
+  token  String @unique
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+model Link {
+  id        Int     @id @default(autoincrement())
+  title     String
+  url       String
+  newTab    Boolean @default(false)
+  sortOrder Int     @default(autoincrement()) @map("sort_order")
+
+  @@map("links")
+}
+
+model Page {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique
+  title     String
+  content   String   @default("")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([slug])
+  @@map("pages")
+}
+
+model Category {
+  id       Int          @id @default(autoincrement())
+  slug     String       @unique
+  name     String
+  parentId Int?         @map("parent_id")
+  view     CategoryView @default(cards)
+
+  products Product[]
+  parent   Category?  @relation(name: "CategoryChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Category[] @relation(name: "CategoryChildren")
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Product {
+  id          Int     @id @default(autoincrement())
+  name        String
+  description String?
+  hidden      Boolean @default(false)
+  slug        String  @unique
+
+  images     ProductImage[]
+  attributes ProductAttributeValue[]
+  categories Category[]
+
+  @@map("products")
+}
+
+model ProductImage {
+  id        Int     @id @default(autoincrement())
+  productId Int     @map("product_id")
+  publicId  String  @map("public_id")
+  url       String
+  isPrimary Boolean @default(false) @map("is_primary")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@map("products_images")
+}
+
+model ProductAttribute {
+  id            Int                      @id @default(autoincrement())
+  name          String
+  dataType      ProductAttributeDataType @map("data_type")
+  unit          String?
+  showInCatalog Boolean                  @default(false) @map("show_in_catalog")
+  sortable      Boolean                  @default(false)
+  filterable    Boolean                  @default(false)
+
+  values  ProductAttributeValue[]
+  options ProductAttributeSelectOption[]
+
+  @@map("products_attributes")
+}
+
+model ProductAttributeValue {
+  id          Int @id @default(autoincrement())
+  productId   Int @map("product_id")
+  attributeId Int @map("attribute_id")
+
+  stringValue  ProductAttributeStringValue?
+  integerValue ProductAttributeIntegerValue?
+  floatValue   ProductAttributeFloatValue?
+  booleanValue ProductAttributeBooleanValue?
+  dateValue    ProductAttributeDateValue?
+  selectValue  ProductAttributeSelectValue[]
+
+  product   Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  attribute ProductAttribute @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeId])
+  @@map("products_attributes_values")
+}
+
+model ProductAttributeStringValue {
+  id               Int    @id @default(autoincrement())
+  attributeValueId Int    @unique @map("attribute_value_id")
+  value            String
+
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("products_attributes_string_values")
+}
+
+model ProductAttributeIntegerValue {
+  id               Int @id @default(autoincrement())
+  attributeValueId Int @unique @map("attribute_value_id")
+  value            Int
+
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("products_attributes_integer_values")
+}
+
+model ProductAttributeFloatValue {
+  id               Int   @id @default(autoincrement())
+  attributeValueId Int   @unique @map("attribute_value_id")
+  value            Float
+
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("products_attributes_float_values")
+}
+
+model ProductAttributeBooleanValue {
+  id               Int     @id @default(autoincrement())
+  attributeValueId Int     @unique @map("attribute_value_id")
+  value            Boolean
+
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("products_attributes_boolean_values")
+}
+
+model ProductAttributeDateValue {
+  id               Int      @id @default(autoincrement())
+  attributeValueId Int      @unique @map("attribute_value_id")
+  value            DateTime
+
+  attributeValue ProductAttributeValue @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@map("products_attributes_date_values")
+}
+
+model ProductAttributeSelectValue {
+  attributeValueId Int @map("attribute_value_id")
+  optionId         Int @map("option_id")
+
+  option         ProductAttributeSelectOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  attributeValue ProductAttributeValue        @relation(fields: [attributeValueId], references: [id], onDelete: Cascade)
+
+  @@id([attributeValueId, optionId])
+  @@map("products_attributes_select_values")
+}
+
+model ProductAttributeSelectOption {
+  id          Int    @id @default(autoincrement())
+  attributeId Int    @map("attribute_id")
+  label       String
+
+  attribute    ProductAttribute              @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  selectValues ProductAttributeSelectValue[]
+
+  @@unique([attributeId, label])
+  @@map("products_attributes_select_options")
+}
+
+enum ProductAttributeDataType {
+  string
+  integer
+  float
+  boolean
+  date
+  select
+}
+
+enum CategoryView {
+  cards
+  table
+}
